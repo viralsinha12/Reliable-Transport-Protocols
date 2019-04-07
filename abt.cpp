@@ -20,26 +20,24 @@ using namespace std;
 
 /******** STUDENTS WRITE THE NEXT SEVEN ROUTINES *********/
 
-//
-//int messagessent = 1;
-//int interruptCount = 1;
-//
-
 int expectedSeq;
 int recentlyAckSeq;
 int count;
+
+int sentmsg = 0;
 
 int seqNum = 0;
 int ackNum = 0;
 int sentFlag = 0;
 int recentlySentSeqNum = 0;
-float timeOutValue = 10.0;
+float timeOutValue = 20.0;
 queue<pkt> bufferQueue;
 struct pkt recentlySentPacket;
 
 /* called from layer 5, passed the data to be sent to other side */
 void A_output(struct msg message)
 {
+
 	struct pkt newPacket;
 	newPacket.seqnum = seqNum;
 	newPacket.acknum = ackNum;
@@ -62,6 +60,7 @@ void A_output(struct msg message)
 	}
 
 	if(sentFlag == 0){
+		sentmsg = sentmsg+1;
 		tolayer3(0,newPacket);
 		starttimer(0,timeOutValue);
 		sentFlag = 1;
@@ -83,12 +82,11 @@ void A_input(struct pkt packet)
 		stoptimer(0);
 		if(!bufferQueue.empty())
 		{
-			sentFlag = 0;
-			tolayer3(0,bufferQueue.front());
+			tolayer3(0,bufferQueue.front());sentmsg += 1;
 			starttimer(0,timeOutValue);
-			sentFlag = 1;
 			recentlySentSeqNum = bufferQueue.front().seqnum;
 			recentlySentPacket = bufferQueue.front();
+			bufferQueue.pop();
 		}
 		else
 			sentFlag = 0;	
@@ -98,7 +96,7 @@ void A_input(struct pkt packet)
 /* called when A's timer goes off */
 void A_timerinterrupt()
 {
-		tolayer3(0,recentlySentPacket);
+		tolayer3(0,recentlySentPacket);sentmsg += 1;
 		starttimer(0,timeOutValue);
 		sentFlag = 1;
 		recentlySentSeqNum = recentlySentPacket.seqnum;
@@ -117,7 +115,7 @@ void A_init()
 /* called from layer 3, when a packet arrives for layer 4 at B*/
 void B_input(struct pkt packet)
 {
-	count = count+1;
+	
 	int checkSum = 0;
 
 	if(count>1 && packet.seqnum == recentlyAckSeq)
@@ -133,16 +131,14 @@ void B_input(struct pkt packet)
 		checkSum = checkSum + packet.seqnum + packet.acknum;
 		if(checkSum == packet.checksum)
 		{
-
-			recentlyAckSeq = packet.seqnum;
 			tolayer5(1,packet.payload);
-
+			tolayer3(1,packet);
+			count = count+1;
+			recentlyAckSeq = packet.seqnum;
 			if (expectedSeq == 0)
 				expectedSeq = 1;
 			else
 				expectedSeq = 0;
-
-			tolayer3(1,packet);
 		}
 		else
 		{
