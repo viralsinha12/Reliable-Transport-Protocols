@@ -24,11 +24,9 @@ int expectedSeq;
 int recentlyAckSeq;
 int count;
 
-int sentmsg = 0;
-
-int seqNum = 0;
-int ackNum = 0;
-int sentFlag = 0;
+int seqNum;
+int ackNum;
+int sentFlag;
 int recentlySentSeqNum = 0;
 float timeOutValue = 20.0;
 queue<pkt> bufferQueue;
@@ -60,7 +58,6 @@ void A_output(struct msg message)
 	}
 
 	if(sentFlag == 0){
-		sentmsg = sentmsg+1;
 		tolayer3(0,newPacket);
 		starttimer(0,timeOutValue);
 		sentFlag = 1;
@@ -82,7 +79,7 @@ void A_input(struct pkt packet)
 		stoptimer(0);
 		if(!bufferQueue.empty())
 		{
-			tolayer3(0,bufferQueue.front());sentmsg += 1;
+			tolayer3(0,bufferQueue.front());
 			starttimer(0,timeOutValue);
 			recentlySentSeqNum = bufferQueue.front().seqnum;
 			recentlySentPacket = bufferQueue.front();
@@ -96,7 +93,7 @@ void A_input(struct pkt packet)
 /* called when A's timer goes off */
 void A_timerinterrupt()
 {
-		tolayer3(0,recentlySentPacket);sentmsg += 1;
+		tolayer3(0,recentlySentPacket);
 		starttimer(0,timeOutValue);
 		sentFlag = 1;
 		recentlySentSeqNum = recentlySentPacket.seqnum;
@@ -107,7 +104,10 @@ void A_timerinterrupt()
 /* entity A routines are called. You can use it to do any initialization */
 void A_init()
 {
-	
+	seqNum = 0;
+	ackNum = 0;
+	sentFlag = 0;
+	recentlySentSeqNum = 0;
 }
 
 /* Note that with simplex transfer from a-to-B, there is no B_output() */
